@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="FACHAT은 기사와 게시물의 출처와 근거를 확인해 신뢰도 판단을 돕는 AI 팩트체크 에이전트입니다." />
+  <title>FACHAT | 팩트가 필요한 순간</title>
+  <style>
+    :root {
+      --bg: #f4fbff;
+      --bg-2: #eef8fb;
+      --card: rgba(255, 255, 255, 0.78);
+      --card-solid: #ffffff;
+      --text: #162033;
+      --muted: #6b7691;
+      --line: rgba(72, 151, 180, 0.18);
+      --aqua: #7bdde2;
+      --mint: #7ddbbf;
+      --blue: #5f8cf5;
+      --deep: #143d52;
+      --shadow: 0 24px 70px rgba(44, 126, 171, 0.18);
+      --shadow-2: 0 14px 40px rgba(48, 104, 151, 0.14);
+      --radius-xl: 34px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --max: 1180px;
+      --nav-h: 78px;
+    }
+
+    body.dark {
+      --bg: #07111d;
+      --bg-2: #0b1c2b;
+      --card: rgba(13, 31, 46, 0.76);
+      --card-solid: #0d2032;
+      --text: #eff8ff;
+      --muted: #a4b8ca;
+      --line: rgba(127, 221, 226, 0.2);
+      --deep: #055b67;
+      --shadow: 0 26px 80px rgba(0, 0, 0, 0.38);
+      --shadow-2: 0 14px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(141, 157, 255, 0.28), transparent 32%),
+        radial-gradient(circle at 78% 18%, rgba(123, 221, 226, 0.52), transparent 28%),
+        radial-gradient(circle at 50% 85%, rgba(125, 219, 191, 0.28), transparent 34%),
+        linear-gradient(135deg, var(--bg), var(--bg-2));
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(71, 154, 190, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(71, 154, 190, 0.07) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 80%);
+      z-index: -2;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      width: 420px;
+      height: 420px;
+      right: -120px;
+      bottom: -120px;
+      background: linear-gradient(135deg, rgba(95, 140, 245, 0.23), rgba(125, 219, 191, 0.27));
+      border-radius: 999px;
+      filter: blur(16px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .wrap {
+      width: min(var(--max), calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      height: var(--nav-h);
+      z-index: 50;
+      backdrop-filter: blur(22px);
+      background: color-mix(in srgb, var(--bg) 75%, transparent);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-inner {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 170px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 17px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #8fa0ff, var(--aqua) 52%, var(--mint));
+      box-shadow: 0 14px 30px rgba(88, 154, 218, 0.28);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .logo::after {
+      content: "";
+      position: absolute;
+      width: 72px;
+      height: 72px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 999px;
+      top: -46px;
+      right: -30px;
+    }
+
+    .logo svg { width: 27px; height: 27px; color: white; z-index: 1; }
+
+    .brand strong {
+      display: block;
+      font-size: 1.16rem;
+      letter-spacing: -0.03em;
+    }
+
+    .brand span {
+      display: block;
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .nav-links a {
+      padding: 10px 13px;
+      border-radius: 999px;
+      transition: 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+      background: rgba(255,255,255,0.55);
+    }
+
+    body.dark .nav-links a:hover { background: rgba(255,255,255,0.08); }
+
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+    .status-pill, .theme-btn, .primary-btn, .soft-btn {
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+      border-radius: 999px;
+      font-weight: 800;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 17px;
+      background: rgba(255,255,255,0.68);
+      color: var(--muted);
+      box-shadow: var(--shadow-2);
+    }
+
+    body.dark .status-pill { background: rgba(255,255,255,0.08); }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--mint);
+      box-shadow: 0 0 0 7px rgba(125, 219, 191, 0.18);
+    }
+
+    .theme-btn {
+      width: 46px;
+      height: 46px;
+      background: rgba(255,255,255,0.68);
+      color: var(--text);
+      box-shadow: var(--shadow-2);
+    }
+
+    body.dark .theme-btn { background: rgba(255,255,255,0.08); color: #fff; }
+
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 23px;
+      color: white;
+      background: linear-gradient(135deg, #6d76ee, #65b4f0 52%, #65c7b4);
+      box-shadow: 0 18px 38px rgba(85, 136, 231, 0.28);
+    }
+
+    .soft-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 15px 22px;
+      color: var(--text);
+      background: rgba(255,255,255,0.72);
+      box-shadow: var(--shadow-2);
+    }
+
+    body.dark .soft-btn { background: rgba(255,255,255,0.08); color: #fff; }
+
+    .primary-btn:hover, .soft-btn:hover, .theme-btn:hover { transform: translateY(-2px); }
+
+    .hero {
+      padding: 54px 0 72px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 42px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 17px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.62);
+      color: #6270e9;
+      font-weight: 900;
+      box-shadow: var(--shadow-2);
+    }
+
+    body.dark .eyebrow { background: rgba(255,255,255,0.08); color: #8ee8e2; }
+
+    h1 {
+      margin: 30px 0 22px;
+      font-size: clamp(3.2rem, 7vw, 6.7rem);
+      line-height: 0.98;
+      letter-spacing: -0.075em;
+    }
+
+    .gradient-text {
+      display: block;
+      background: linear-gradient(100deg, #6674ec, #73b7f2 48%, #70c7b7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 590px;
+      color: var(--muted);
+      font-size: clamp(1.05rem, 1.6vw, 1.28rem);
+      line-height: 1.85;
+      word-break: keep-all;
+    }
+
+    .lead strong { color: var(--text); }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-top: 34px;
+    }
+
+    .quick-points {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 32px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .quick-points span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 13px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.58);
+      border: 1px solid var(--line);
+    }
+
+    body.dark .quick-points span { background: rgba(255,255,255,0.06); }
+
+    .chat-shell {
+      position: relative;
+      border-radius: var(--radius-xl);
+      padding: 14px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.42));
+      border: 1px solid rgba(255,255,255,0.78);
+      box-shadow: var(--shadow);
+    }
+
+    body.dark .chat-shell {
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.04));
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .chat-shell::before {
+      content: "출처를 확인하고, 근거를 비교해요.";
+      position: absolute;
+      right: -16px;
+      top: 56px;
+      z-index: 3;
+      padding: 15px 18px;
+      border-radius: 18px;
+      color: var(--text);
+      background: rgba(255,255,255,0.86);
+      border: 1px solid var(--line);
+      font-weight: 900;
+      box-shadow: var(--shadow-2);
+    }
+
+    body.dark .chat-shell::before { background: rgba(15, 34, 52, 0.92); }
+
+    .chat-card {
+      overflow: hidden;
+      border-radius: 26px;
+      background: var(--card-solid);
+      border: 1px solid var(--line);
+      min-height: 660px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-head {
+      height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(255,255,255,0.86), rgba(236, 251, 255, 0.76));
+    }
+
+    body.dark .chat-head { background: linear-gradient(90deg, rgba(15,34,52,0.9), rgba(8,32,45,0.9)); }
+
+    .agent-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .agent-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #8fa0ff, var(--aqua), var(--mint));
+      color: white;
+    }
+
+    .agent-meta strong { display: block; font-size: 1.18rem; letter-spacing: -0.03em; }
+    .agent-meta span { display: flex; align-items: center; gap: 8px; color: var(--muted); margin-top: 3px; font-weight: 700; }
+
+    .chat-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 13px;
+      border-radius: 999px;
+      background: rgba(123, 221, 226, 0.14);
+      color: #287c82;
+      font-weight: 900;
+    }
+
+    body.dark .chat-tag { color: #9df0e8; }
+
+    .iframe-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 578px;
+      background: #fff;
+    }
+
+    .iframe-wrap iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      min-height: 578px;
+      border: 0;
+      background: #fff;
+    }
+
+    section { scroll-margin-top: 100px; }
+
+    .section { padding: 54px 0; }
+
+    .section-title {
+      margin-bottom: 24px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: clamp(2rem, 3.8vw, 3.25rem);
+      line-height: 1.15;
+      letter-spacing: -0.06em;
+    }
+
+    .section-title p {
+      margin: 0;
+      max-width: 520px;
+      color: var(--muted);
+      line-height: 1.75;
+      word-break: keep-all;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .card, .process-item, .notice, .faq-item {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-2);
+      backdrop-filter: blur(18px);
+    }
+
+    .card {
+      padding: 24px;
+      min-height: 210px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      right: -46px;
+      top: -44px;
+      background: linear-gradient(135deg, rgba(123,221,226,0.22), rgba(125,219,191,0.18));
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: rgba(123,221,226,0.18);
+      color: #287c82;
+      margin-bottom: 22px;
+    }
+
+    body.dark .card-icon { color: #9df0e8; }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 1.18rem;
+      letter-spacing: -0.025em;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      word-break: keep-all;
+    }
+
+    .process {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      counter-reset: step;
+    }
+
+    .process-item {
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .process-item::before {
+      counter-increment: step;
+      content: "0" counter(step);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(95,140,245,0.92), rgba(123,221,226,0.92));
+      color: #fff;
+      font-weight: 950;
+      margin-bottom: 18px;
+    }
+
+    .process-item h3 { margin: 0 0 8px; font-size: 1.04rem; }
+    .process-item p { margin: 0; color: var(--muted); line-height: 1.6; font-size: 0.95rem; word-break: keep-all; }
+
+    .examples-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .notice {
+      padding: 28px;
+    }
+
+    .notice h2, .notice h3 { margin-top: 0; letter-spacing: -0.04em; }
+    .notice p { color: var(--muted); line-height: 1.75; word-break: keep-all; }
+
+    .prompt-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .prompt {
+      padding: 15px 17px;
+      border-radius: 17px;
+      background: rgba(255,255,255,0.62);
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-weight: 800;
+    }
+
+    body.dark .prompt { background: rgba(255,255,255,0.06); }
+
+    .faq-list { display: grid; gap: 12px; }
+
+    .faq-item { overflow: hidden; }
+
+    .faq-question {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-weight: 900;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .faq-answer {
+      display: none;
+      padding: 0 20px 20px;
+      color: var(--muted);
+      line-height: 1.7;
+      word-break: keep-all;
+    }
+
+    .faq-item.open .faq-answer { display: block; }
+    .faq-item.open .faq-question .plus { transform: rotate(45deg); }
+    .plus { transition: transform 0.2s ease; font-size: 1.4rem; }
+
+    .footer {
+      margin-top: 40px;
+      padding: 34px 0 44px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      line-height: 1.7;
+      word-break: keep-all;
+    }
+
+    .mobile-only { display: none; }
+
+    @media (max-width: 1060px) {
+      .hero-grid, .examples-grid { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .process { grid-template-columns: repeat(2, 1fr); }
+      .chat-shell::before { right: 22px; top: 92px; }
+    }
+
+    @media (max-width: 760px) {
+      :root { --nav-h: 70px; }
+      .wrap { width: min(100% - 26px, var(--max)); }
+      .nav-links, .status-pill, .chat-tag { display: none; }
+      .mobile-only { display: inline-flex; }
+      .hero { padding-top: 34px; }
+      h1 { font-size: clamp(3rem, 15vw, 4.8rem); }
+      .cards, .process { grid-template-columns: 1fr; }
+      .section-title { align-items: start; flex-direction: column; }
+      .chat-shell { padding: 8px; border-radius: 25px; }
+      .chat-card { min-height: 620px; border-radius: 21px; }
+      .chat-head { height: auto; min-height: 76px; padding: 14px; }
+      .agent-icon { width: 46px; height: 46px; }
+      .chat-shell::before { display: none; }
+      .iframe-wrap, .iframe-wrap iframe { min-height: 540px; }
+      .footer-inner { flex-direction: column; }
+      .hero-actions { flex-direction: column; }
+      .primary-btn, .soft-btn { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body class="dark">
+  <nav class="nav" aria-label="주요 메뉴">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top" aria-label="FACHAT 홈으로 이동">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.4 8.4 0 0 1-9.1 8.4 8.6 8.6 0 0 1-4.1-1.4L3 20l1.6-4.5a8.4 8.4 0 1 1 16.4-4Z"/>
+            <path d="m8.4 11.6 2.2 2.2 5-5"/>
+          </svg>
+        </div>
+        <div>
+          <strong>FACHAT</strong>
+          <span>Fact + Chat</span>
+        </div>
+      </a>
+
+      <div class="nav-links" aria-label="섹션 이동 링크">
+        <a href="#about">서비스 소개</a>
+        <a href="#features">기능</a>
+        <a href="#process">검증 방식</a>
+        <a href="#examples">사용 예시</a>
+        <a href="#chat">FACHAT 실행</a>
+      </div>
+
+      <div class="nav-actions">
+        <div class="status-pill" aria-label="에이전트 온라인 상태"><span class="dot"></span> 온라인</div>
+        <button class="theme-btn" id="themeToggle" type="button" aria-label="다크모드 전환">☀</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">✦ AI 기반 뉴스 신뢰도 검증</div>
+          <h1 id="hero-title">
+            팩트가 필요한 순간,
+            <span class="gradient-text">FACHAT</span>
+          </h1>
+          <p class="lead">
+            <strong>거짓 속 진실을 위해서, 더 나은 미래를 위해서.</strong><br />
+            FACHAT은 기사와 게시물의 출처, 근거, 관련 보도 흐름을 함께 살펴보며 누구나 쉽게 팩트를 확인하도록 돕는 대화형 AI 에이전트입니다.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-btn" href="#chat">💬 지금 팩트체크 시작하기</a>
+            <a class="soft-btn" href="#process">검증 방식 보기 ↓</a>
+          </div>
+          <div class="quick-points" aria-label="핵심 특징">
+            <span>✓ 출처 확인</span>
+            <span>✓ 근거 비교</span>
+            <span>✓ 세계 뉴스 API 분석</span>
+            <span>✓ 쉬운 설명</span>
+          </div>
+        </div>
+
+        <div class="chat-shell" id="chat" aria-label="FACHAT 챗봇 영역">
+          <div class="chat-card">
+            <div class="chat-head">
+              <div class="agent-meta">
+                <div class="agent-icon" aria-hidden="true">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.4 8.4 0 0 1-9.1 8.4 8.6 8.6 0 0 1-4.1-1.4L3 20l1.6-4.5a8.4 8.4 0 1 1 16.4-4Z"/>
+                    <path d="M8 12h8"/><path d="M12 8v8"/>
+                  </svg>
+                </div>
+                <div>
+                  <strong>FACHAT 검증 에이전트</strong>
+                  <span><i class="dot" style="width:8px;height:8px;box-shadow:none"></i> 지금 대화할 수 있어요</span>
+                </div>
+              </div>
+              <div class="chat-tag">Copilot Studio</div>
+            </div>
+            <div class="iframe-wrap">
+              <iframe
+                title="FACHAT Copilot Studio Webchat"
+                src="https://copilotstudio.microsoft.com/environments/Default-a5a060c4-00b2-4343-b6c9-23625439a0c0/bots/cr9fa_bot_cotKWr/webchat?__version__=2&enableFileAttachment=false&cliAgent=true"
+                allow="clipboard-read; clipboard-write">
+              </iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section wrap" id="about" aria-labelledby="about-title">
+      <div class="notice">
+        <h2 id="about-title">FACHAT은 ‘판단’을 대신하지 않고, 판단할 수 있는 근거를 정리합니다.</h2>
+        <p>
+          FACHAT은 Fact와 Chat을 결합한 이름입니다. 기사나 게시물의 내용을 입력하면 출처와 관련 근거를 확인하고, 세계 뉴스 API 기반의 보도 흐름을 참고해 보다 신중하게 정보를 바라볼 수 있도록 돕습니다. 이름은 한국어로 “파채”와 비슷하게 들리는 작은 유머도 담고 있습니다.
+        </p>
+      </div>
+    </section>
+
+    <section class="section wrap" id="features" aria-labelledby="features-title">
+      <div class="section-title">
+        <h2 id="features-title">보여주기용이 아닌,<br />실제로 설명 가능한 기능들</h2>
+        <p>별도의 입력창은 만들지 않았습니다. 실제 대화와 검증 요청은 위의 Copilot Studio 에이전트 영역에서만 이루어지도록 구성했습니다.</p>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-icon">🔎</div>
+          <h3>출처 기반 확인</h3>
+          <p>기사의 출처, 보도 주체, 관련 맥락을 함께 확인하도록 안내합니다.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon">🌐</div>
+          <h3>세계 뉴스 흐름 비교</h3>
+          <p>세계 뉴스 API를 활용한 관련 보도 분석 방향을 바탕으로 팩트 판단을 돕습니다.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon">🧭</div>
+          <h3>근거 중심 해설</h3>
+          <p>단순히 맞다, 아니다가 아니라 어떤 근거로 판단해야 하는지 설명합니다.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon">💬</div>
+          <h3>대화형 팩트체크</h3>
+          <p>궁금한 기사나 주장을 자연어로 물어보고, 이어서 추가 질문할 수 있습니다.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section wrap" id="process" aria-labelledby="process-title">
+      <div class="section-title">
+        <h2 id="process-title">FACHAT 검증 흐름</h2>
+        <p>사용자는 기사나 게시물을 에이전트에게 전달하고, FACHAT은 출처와 근거를 중심으로 신뢰도 판단을 돕는 설명을 제공합니다.</p>
+      </div>
+      <div class="process">
+        <article class="process-item"><h3>기사 입력</h3><p>검증하고 싶은 기사 URL, 제목, 내용 또는 게시물 문장을 대화창에 입력합니다.</p></article>
+        <article class="process-item"><h3>출처 확인</h3><p>보도 주체, 발행 맥락, 원문 여부 등 확인해야 할 요소를 살펴봅니다.</p></article>
+        <article class="process-item"><h3>근거 탐색</h3><p>관련 보도와 근거 자료를 바탕으로 주장과 사실을 분리합니다.</p></article>
+        <article class="process-item"><h3>신뢰도 분석</h3><p>과장, 왜곡, 근거 부족 가능성을 대화형 설명으로 정리합니다.</p></article>
+        <article class="process-item"><h3>결과 안내</h3><p>사용자가 스스로 판단할 수 있도록 핵심 근거와 주의점을 알려줍니다.</p></article>
+      </div>
+    </section>
+
+    <section class="section wrap" id="examples" aria-labelledby="examples-title">
+      <div class="examples-grid">
+        <div class="notice">
+          <h2 id="examples-title">이렇게 물어보세요</h2>
+          <p>FACHAT은 별도 입력 폼 없이 챗봇 영역 안에서만 대화합니다. 아래 문장을 복사해서 질문해도 좋습니다.</p>
+          <div class="prompt-list">
+            <div class="prompt">“이 기사 믿어도 될까? 출처와 근거를 확인해줘.”</div>
+            <div class="prompt">“이 주장과 관련된 다른 보도 흐름을 비교해줘.”</div>
+            <div class="prompt">“이 게시물에서 과장되었거나 확인이 필요한 부분을 찾아줘.”</div>
+            <div class="prompt">“팩트와 의견을 나눠서 설명해줘.”</div>
+          </div>
+        </div>
+        <div class="notice">
+          <h3>사용 전 안내</h3>
+          <p>
+            FACHAT은 정보 검증을 돕는 AI 도구이며, 최종 판단은 사용자가 여러 출처를 함께 확인해 결정하는 것을 권장합니다.
+          </p>
+          <div class="faq-list" aria-label="자주 묻는 질문">
+            <div class="faq-item open">
+              <button class="faq-question" type="button">파일 첨부가 가능한가요?<span class="plus">+</span></button>
+              <div class="faq-answer">현재 제공된 에이전트 URL은 파일 첨부가 비활성화된 설정입니다. 텍스트나 URL 중심으로 질문하는 구조가 가장 안정적입니다.</div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-question" type="button">다크모드는 저장되나요?<span class="plus">+</span></button>
+              <div class="faq-answer">요청한 방식에 맞춰 저장하지 않습니다. 버튼을 누르면 현재 화면에서만 즉시 전환됩니다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <strong>FACHAT</strong><br />
+        거짓 속 진실을 위해서, 더 나은 미래를 위해서.
+      </div>
+      <div>
+        © 2026 FACHAT. Built for GitHub Pages.<br />
+        AI 분석 결과는 참고용이며, 중요한 판단에는 복수의 공신력 있는 출처 확인을 권장합니다.
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      themeToggle.textContent = document.body.classList.contains('dark') ? '☀' : '☾';
+    });
+
+    document.querySelectorAll('.faq-question').forEach((button) => {
+      button.addEventListener('click', () => {
+        button.closest('.faq-item').classList.toggle('open');
+      });
+    });
+  </script>
+</body>
+</html>
